@@ -6,7 +6,7 @@ authors = ["Shenghao Yang"]
 license = "MIT"
 description = "Data operators and testing utilities for fountain code libraries"
 repository = "https://github.com/shhyang/fountain_utility"
-keywords = ["fountain code", "data operator", "testing"]
+keywords = ["fountain_code", "data_operator", "testing"]
 categories = ["algorithms", "development-tools::testing"]
 
 [dependencies]
