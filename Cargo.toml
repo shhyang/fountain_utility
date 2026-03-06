@@ -1,11 +1,12 @@
 [package]
 name = "fountain_utility"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2024"
 authors = ["Shenghao Yang"]
 license = "MIT"
 description = "Data operators and testing utilities for fountain code libraries"
 repository = "https://github.com/shhyang/fountain_utility"
+documentation = "https://shhyang.github.io/fountain_docs/"
 keywords = ["fountain_code", "data_operator", "testing"]
 categories = ["algorithms", "development-tools::testing"]
 
