@@ -1,8 +1,8 @@
 // Copyright (c) 2025 Shenghao Yang. All rights reserved.
 // Licensed under the MIT License. See LICENSE-MIT for details.
 
-use fountain_engine::algebra::finite_field::GF256;
-use fountain_engine::types::Operation;
+use fountain_engine::algebra::finite_field::{Field,GF256};
+use fountain_engine::types::{GF2_FIELD_POLY, Operation};
 use fountain_engine::traits::DataOperator;
 use std::collections::HashMap;
 
@@ -14,7 +14,8 @@ pub struct VecDataOperater {
     vectors: Vec<Vec<u8>>,
     vector_len: usize,
     //next_temp_vector_id: usize,
-    gf256: GF256,
+    /// GF(256) tables for this session; `None` when configured with [`GF2_FIELD_POLY`](fountain_engine::types::GF2_FIELD_POLY).
+    gf256: Option<GF256>,
     /// Maps data vector ID to vector index
     data_id_to_index: HashMap<usize, usize>,
     // Maps vector index to data vector ID
@@ -24,16 +25,41 @@ pub struct VecDataOperater {
 // const MAX_DATA_VECTOR_ID: usize = 10000000; //usize::MAX / 2;
 
 impl VecDataOperater {
-    /// Creates a new operator with the given vector length; initially holds no vectors.
+    /// Creates an operator with no finite field configured yet.
+    ///
     pub fn new(vector_len: usize) -> Self {
         Self {
             vectors: Vec::new(),
             vector_len,
-            //next_temp_vector_id: MAX_DATA_VECTOR_ID+1,
-            gf256: GF256::default(),
+            gf256: None,
             data_id_to_index: HashMap::new(),
-            //index_to_id: HashMap::new(),
         }
+    }
+
+    /// Creates an operator with GF(256) tables for primitive polynomial `pp` (e.g. `0x11D`).
+    ///
+    /// If the engine later calls `config_finite_field` with the same `pp`, the operator skips
+    /// rebuilding tables (see [`DataOperator::config_finite_field`]).
+    pub fn new_with_gf256(vector_len: usize, pp: u16) -> Self {
+        Self {
+            vectors: Vec::new(),
+            vector_len,
+            gf256: Some(GF256::new_with_primitive_polynomial(pp)),
+            data_id_to_index: HashMap::new(),
+        }
+    }
+
+    /// GF(256) used for scalar multiply and related ops, if configured.
+    #[inline]
+    pub fn gf256(&self) -> Option<&GF256> {
+        self.gf256.as_ref()
+    }
+
+    #[inline]
+    fn require_gf256(gf256: &Option<GF256>) -> &GF256 {
+        gf256
+            .as_ref()
+            .expect("GF(256) is not set on VecDataOperater")
     }
 
     fn new_zero_vector(&self) -> Vec<u8> {
@@ -94,13 +120,14 @@ impl VecDataOperater {
         }
 
         let n = a.len();
+        let gf = Self::require_gf256(&self.gf256);
 
         // Forward substitution (L part)
         for j in 0..n - 1 {
             for i in j + 1..n {
                 // self.vectors[i] = self.vectors[i] + self.vectors[j] * a[i][j]
                 for k in 0..self.vector_len {
-                    self.vectors[i][k] ^= self.gf256.multiply(a[i][j], self.vectors[j][k]);
+                    self.vectors[i][k] ^= gf.mul(a[i][j], self.vectors[j][k]);
                 }
             }
         }
@@ -108,14 +135,14 @@ impl VecDataOperater {
         // Backward substitution (U part)
         for j in (0..n).rev() {
             // Multiply by inverse of diagonal element
-            let inv = self.gf256.inverse(a[j][j]);
+            let inv = gf.inverse(a[j][j]);
             for k in 0..self.vector_len {
-                self.vectors[j][k] = self.gf256.multiply(self.vectors[j][k], inv);
+                self.vectors[j][k] = gf.mul(self.vectors[j][k], inv);
             }
 
             for i in (0..j).rev() {
                 for k in 0..self.vector_len {
-                    self.vectors[i][k] ^= self.gf256.multiply(a[i][j], self.vectors[j][k]);
+                    self.vectors[i][k] ^= gf.mul(a[i][j], self.vectors[j][k]);
                 }
             }
         }
@@ -131,7 +158,34 @@ impl VecDataOperater {
     }
 }
 
+
 impl DataOperator for VecDataOperater {
+    fn config_finite_field(&mut self, pp: u16) {
+        if pp == GF2_FIELD_POLY {
+            self.gf256 = None;
+            return;
+        }
+        if self
+            .gf256
+            .as_ref()
+            .is_some_and(|gf| gf.primitive_polynomial() == pp)
+        {
+            return;
+        }
+        self.gf256 = Some(GF256::new_with_primitive_polynomial(pp));
+    }
+
+    fn config_finite_field_from(&mut self, gf: &GF256) {
+        if self
+            .gf256
+            .as_ref()
+            .is_some_and(|f| f.primitive_polynomial() == gf.primitive_polynomial())
+        {
+            return;
+        }
+        self.gf256 = Some(gf.clone());
+    }
+
     /// Add a vector to the manager.
     fn insert_vector(&mut self, src: &[u8], data_id: usize) {
         let target_index = self.ensure_vector_exists(data_id);
@@ -224,10 +278,11 @@ impl VecDataOperater {
     }
 
     fn multiply_alpha(&mut self, vector_id: usize) {
+        let gf = Self::require_gf256(&self.gf256);
         if let Some(index) = self.data_id_to_index.get(&vector_id) {
             let vector = &mut self.vectors[*index];
             for byte in vector.iter_mut() {
-                *byte = self.gf256.mul_alpha(*byte);
+                *byte = gf.mul_alpha(*byte);
             }
         } else {
             panic!("Vector with ID {} does not exist", vector_id);
@@ -261,10 +316,10 @@ impl VecDataOperater {
                 // No operation needed
                 //self.ensure_vector_exists(*index);
             } else {
-                // Proper GF(256) multiplication
+                let gf = Self::require_gf256(&self.gf256);
                 let vector = &mut self.vectors[*index];
                 for byte in vector.iter_mut() {
-                    *byte = self.gf256.mul_lookup(*byte, scalar);
+                    *byte = gf.mul_lookup(*byte, scalar);
                 }
             }
         } else {
@@ -319,9 +374,10 @@ impl VecDataOperater {
                         self.add_to_vector(&[source_id], target_id);
                     }
                     _ => {
+                        let gf = Self::require_gf256(&self.gf256);
                         for i in 0..self.vector_len {
                             self.vectors[*target_index][i] ^=
-                                self.gf256.mul_lookup(scalar, self.vectors[*src_index][i]);
+                                gf.mul_lookup(scalar, self.vectors[*src_index][i]);
                         }
                     }
                 }
@@ -383,5 +439,23 @@ mod tests {
         assert_eq!(manager.get_vector(2), vec![7, 8, 9]);
         assert_eq!(manager.get_vector(3), vec![10, 11, 12]);
         assert_eq!(manager.get_vector(0), vec![1, 2, 3]);
+    }
+
+    #[test]
+    fn gf2_config_clears_field() {
+        let mut op = VecDataOperater::new_with_gf256(4, 0x11D);
+        assert!(op.gf256().is_some());
+        op.config_finite_field(GF2_FIELD_POLY);
+        assert!(op.gf256().is_none());
+    }
+
+    #[test]
+    fn mul_add_scalar_one_without_gf256() {
+        let mut op = VecDataOperater::new(4);
+        op.config_finite_field(GF2_FIELD_POLY);
+        op.insert_vector(&[1, 2, 3, 4], 0);
+        op.insert_vector(&[5, 6, 7, 8], 1);
+        op.mul_add(0, 1, 1);
+        assert_eq!(op.get_vector(1), vec![4, 4, 4, 12]);
     }
 }

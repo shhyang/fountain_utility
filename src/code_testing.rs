@@ -5,7 +5,9 @@
 //! 
 //! This module provides generic testing functions for any code scheme implementation.
 
-use fountain_engine::*;
+use fountain_engine::{Decoder, Encoder};
+use fountain_engine::traits::*;
+use fountain_engine::types::*;
 use crate::{VecDataOperater, operation_counter::PerformanceMetrics};
 use rand::prelude::SliceRandom;
 use std::time::Instant;
@@ -124,7 +126,7 @@ where
     }
     let decoding_time = decoding_time.elapsed();
     let decoding_metrics = PerformanceMetrics
-        ::from_operations(&decoder.manager.move_new_operations(), decoder.manager.coded_vector_inserted);
+        ::from_operations(&decoder.manager.move_new_operations(), decoder.manager.num_coded_vector_inserted);
     
     let num_mismatches = if decoded_successfully {
         0
@@ -215,7 +217,7 @@ where
     }
     let decoding_time = decoding_time.elapsed();
     let decoding_metrics = PerformanceMetrics
-        ::from_operations(&decoder.manager.move_new_operations(), decoder.manager.coded_vector_inserted);
+        ::from_operations(&decoder.manager.move_new_operations(), decoder.manager.num_coded_vector_inserted);
 
     // Verify decoded vectors match message vectors
     let decoder_operator = decoder.manager.move_operator();
