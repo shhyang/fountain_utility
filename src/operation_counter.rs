@@ -3,8 +3,8 @@
 
 //! Operation counting and analysis for fountain code performance evaluation
 
-use fountain_engine::types::{Operation};
-use serde::{Serialize, Deserialize};
+use fountain_engine::types::Operation;
+use serde::{Deserialize, Serialize};
 
 /// Operation counters for tracking different types of operations in DataManager
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -24,7 +24,7 @@ pub struct PerformanceMetrics {
 }
 
 impl PerformanceMetrics {
-    /// Count operations 
+    /// Count operations
     pub fn from_operations(operations: &[Operation], coded_vector_inserted: usize) -> Self {
         let mut metrics = Self::default();
         let mut current_storage = coded_vector_inserted;
@@ -35,19 +35,24 @@ impl PerformanceMetrics {
                     if current_storage > metrics.max_storage {
                         metrics.max_storage = current_storage;
                     }
-                },
+                }
                 Operation::MultiplyAlpha { .. } => metrics.multiply_alpha += 1,
                 Operation::MultiplyScalar { .. } => metrics.multiply_scalar += 1,
+                Operation::AddOneToVector { .. } => metrics.vector_add += 1,
+                Operation::AddTwoToVector { .. } => metrics.vector_add += 2,
+                Operation::AddThreeToVector { .. } => metrics.vector_add += 3,
                 Operation::AddToVector { list_id, .. } => metrics.vector_add += list_id.len(),
-                Operation::BroadcastAdd { target_ids, .. } => metrics.vector_add += target_ids.len(),
-                Operation::MulAdd { .. } => {metrics.mul_add += 1},
-                Operation::MoveTo { .. } => {},
+                Operation::BroadcastAdd { target_ids, .. } => {
+                    metrics.vector_add += target_ids.len()
+                }
+                Operation::MulAdd { .. } => metrics.mul_add += 1,
+                Operation::MoveTo { .. } => {}
                 Operation::CopyTo { .. } => {
                     current_storage += 1;
                     if current_storage > metrics.max_storage {
                         metrics.max_storage = current_storage;
                     }
-                },
+                }
                 Operation::Remove { .. } => {
                     if let Some(new_value) = current_storage.checked_sub(1) {
                         current_storage = new_value;
@@ -55,11 +60,10 @@ impl PerformanceMetrics {
                         //current_storage = 0;
                         panic!("Current storage is 0, cannot remove a vector");
                     }
-                },
+                }
                 Operation::InfoCodedVector { .. } => metrics.num_coded_vectors += 1,
             }
         }
         metrics
-    }    
+    }
 }
-

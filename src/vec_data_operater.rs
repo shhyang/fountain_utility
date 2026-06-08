@@ -1,9 +1,9 @@
 // Copyright (c) 2025 Shenghao Yang. All rights reserved.
 // Licensed under the MIT License. See LICENSE-MIT for details.
 
-use fountain_engine::algebra::finite_field::{Field,GF256};
-use fountain_engine::types::{GF2_FIELD_POLY, Operation};
+use fountain_engine::algebra::finite_field::{Field, GF256};
 use fountain_engine::traits::DataOperator;
+use fountain_engine::types::{GF2_FIELD_POLY, Operation};
 use std::collections::HashMap;
 
 /// VecDataManager is a simple implementation of DataManager for a vector of data vectors.
@@ -79,7 +79,6 @@ impl VecDataOperater {
     /// if a data vector does not exist, create it and set it to zero
     /// return the index of the vector
     fn ensure_vector_exists_set_zero(&mut self, data_id: usize) -> usize {
-        
         if let Some(idx) = self.data_id_to_index.get(&data_id) {
             self.vectors[*idx].iter_mut().for_each(|x| *x = 0);
             *idx
@@ -92,7 +91,6 @@ impl VecDataOperater {
     /// if a data vector does not exist, create it and set it to zero
     /// return the index of the vector
     fn ensure_vector_exists(&mut self, vector_id: usize) -> usize {
-        
         if let Some(idx) = self.data_id_to_index.get(&vector_id) {
             *idx
         } else {
@@ -158,7 +156,6 @@ impl VecDataOperater {
     }
 }
 
-
 impl DataOperator for VecDataOperater {
     fn config_finite_field(&mut self, pp: u16) {
         if pp == GF2_FIELD_POLY {
@@ -221,6 +218,20 @@ impl DataOperator for VecDataOperater {
             //Operation::DivideScalar { scalar, id } => {
             //    self.divide_scalar(*scalar, *id);
             //}
+            Operation::AddOneToVector { src_id, target_id } => {
+                self.add_to_vector(&[*src_id], *target_id);
+            }
+            Operation::AddTwoToVector { s0, s1, target_id } => {
+                self.add_to_vector(&[*s0, *s1], *target_id);
+            }
+            Operation::AddThreeToVector {
+                s0,
+                s1,
+                s2,
+                target_id,
+            } => {
+                self.add_to_vector(&[*s0, *s1, *s2], *target_id);
+            }
             Operation::AddToVector { list_id, target_id } => {
                 self.add_to_vector(list_id, *target_id);
             }
@@ -243,8 +254,7 @@ impl DataOperator for VecDataOperater {
             Operation::Remove { id } => {
                 self.remove(*id);
             }
-            Operation::InfoCodedVector { .. } => {
-            }
+            Operation::InfoCodedVector { .. } => {}
         }
     }
 }

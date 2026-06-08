@@ -12,16 +12,16 @@ use fountain_engine::types::Operation;
 use std::io::Write;
 
 /// A DataOperator that writes operations to a configurable writer.
-/// 
+///
 /// This operator logs all operations to the writer but does not execute them.
 /// It's useful for logging, debugging, or sending operations to external systems.
-/// 
+///
 /// # Example
-/// 
+///
 /// ```no_run
 /// use fountain_utility::io_data_operator::IoDataOperator;
 /// use std::io::stdout;
-/// 
+///
 /// let mut io_op = IoDataOperator::new(stdout());
 /// ```
 pub struct IoDataOperator<W: Write> {
@@ -69,7 +69,6 @@ impl<W: Write> IoDataOperator<W> {
 }
 
 impl<W: Write> DataOperator for IoDataOperator<W> {
-
     fn execute(&mut self, operation: &Operation) {
         // Write the operation to the writer
         let _ = self.write_operation(operation);
@@ -108,4 +107,3 @@ mod tests {
         assert!(output.contains("3"));
     }
 }
-

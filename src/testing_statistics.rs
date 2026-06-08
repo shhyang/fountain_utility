@@ -2,12 +2,12 @@
 // Licensed under the MIT License. See LICENSE-MIT for details.
 
 //! Statistical analysis for fountain code test results
-//! 
+//!
 //! This module provides tools for collecting and analyzing statistics from
 //! multiple test runs of the same code scheme.
 
 use crate::code_testing::TestResult;
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 /// Statistics collected from multiple test runs
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -81,11 +81,11 @@ impl Statistics {
         if values.is_empty() {
             return Self::default();
         }
-        
+
         let mean = values.iter().sum::<f64>() / values.len() as f64;
         let min = values.iter().fold(f64::INFINITY, |a, &b| a.min(b));
         let max = values.iter().fold(f64::NEG_INFINITY, |a, &b| a.max(b));
-        
+
         Self { mean, min, max }
     }
 }
@@ -97,8 +97,9 @@ impl TestStatistics {
         if num_runs == 0 {
             return (0, 0, 0.0);
         }
-        
-        let succ_results: Vec<&TestResult> = results.iter().filter(|r| r.num_mismatches == 0).collect();
+
+        let succ_results: Vec<&TestResult> =
+            results.iter().filter(|r| r.num_mismatches == 0).collect();
         let successful_runs = succ_results.len();
         let success_rate = successful_runs as f64 / num_runs as f64;
         (num_runs, successful_runs, success_rate)
@@ -106,13 +107,15 @@ impl TestStatistics {
 
     /// Calculate overhead statistics (decoding overhead = num_coded_vectors used - k)
     pub fn overhead_stats(k: usize, results: &[TestResult]) -> Statistics {
-        let succ_results: Vec<&TestResult> = results.iter().filter(|r| r.num_mismatches == 0).collect();
+        let succ_results: Vec<&TestResult> =
+            results.iter().filter(|r| r.num_mismatches == 0).collect();
         if succ_results.is_empty() {
             return Statistics::default();
         }
-        
+
         //let k = self.k; // All results should have the same k
-        let overheads: Vec<f64> = succ_results.iter()
+        let overheads: Vec<f64> = succ_results
+            .iter()
             .map(|r| r.decoding_metrics.num_coded_vectors as f64 - k as f64)
             .collect();
         Statistics::from_values(&overheads)
@@ -120,55 +123,69 @@ impl TestStatistics {
 
     /// Calculate storage statistics (max_storage from decoding)
     pub fn storage_stats(results: &[TestResult]) -> Statistics {
-        let succ_results: Vec<&TestResult> = results.iter().filter(|r| r.num_mismatches == 0).collect();
+        let succ_results: Vec<&TestResult> =
+            results.iter().filter(|r| r.num_mismatches == 0).collect();
         if succ_results.is_empty() {
             return Statistics::default();
         }
-        
-        let storages: Vec<f64> = succ_results.iter()
+
+        let storages: Vec<f64> = succ_results
+            .iter()
             .map(|r| r.decoding_metrics.max_storage as f64)
             .collect();
         Statistics::from_values(&storages)
     }
 
     /// Calculate average computation costs for precoding, encoding, and decoding
-    pub fn avg_computation_costs(k: usize,results: &[TestResult]) -> (AverageComputation, AverageComputation, AverageComputation) {
-        let succ_results: Vec<&TestResult> = results.iter().filter(|r| r.num_mismatches == 0).collect();
+    pub fn avg_computation_costs(
+        k: usize,
+        results: &[TestResult],
+    ) -> (AverageComputation, AverageComputation, AverageComputation) {
+        let succ_results: Vec<&TestResult> =
+            results.iter().filter(|r| r.num_mismatches == 0).collect();
         if succ_results.is_empty() {
-            return (AverageComputation::default(), AverageComputation::default(), AverageComputation::default());
+            return (
+                AverageComputation::default(),
+                AverageComputation::default(),
+                AverageComputation::default(),
+            );
         }
-        
+
         //let k = succ_results[0].k; // All results should have the same k
         let count = succ_results.len() as f64;
-        
-        let precoding = succ_results.iter().fold(AverageComputation::default(), |acc, r| {
-            AverageComputation {
+
+        let precoding = succ_results
+            .iter()
+            .fold(AverageComputation::default(), |acc, r| AverageComputation {
                 multiply_alpha: acc.multiply_alpha + r.precoding_metrics.multiply_alpha as f64,
                 multiply_scalar: acc.multiply_scalar + r.precoding_metrics.multiply_scalar as f64,
                 vector_add: acc.vector_add + r.precoding_metrics.vector_add as f64,
                 mul_add: acc.mul_add + r.precoding_metrics.mul_add as f64,
-            }
-        });
-        
-        let encoding = succ_results.iter().fold(AverageComputation::default(), |acc, r| {
-            let normalizer = r.encoding_metrics.num_coded_vectors as f64;
-            AverageComputation {
-                multiply_alpha: acc.multiply_alpha + r.encoding_metrics.multiply_alpha as f64 / normalizer,
-                multiply_scalar: acc.multiply_scalar + r.encoding_metrics.multiply_scalar as f64 / normalizer,
-                vector_add: acc.vector_add + r.encoding_metrics.vector_add as f64 / normalizer,
-                mul_add: acc.mul_add + r.encoding_metrics.mul_add as f64 / normalizer,
-            }
-        });
-        
-        let decoding = succ_results.iter().fold(AverageComputation::default(), |acc, r| {
-            AverageComputation {
+            });
+
+        let encoding = succ_results
+            .iter()
+            .fold(AverageComputation::default(), |acc, r| {
+                let normalizer = r.encoding_metrics.num_coded_vectors as f64;
+                AverageComputation {
+                    multiply_alpha: acc.multiply_alpha
+                        + r.encoding_metrics.multiply_alpha as f64 / normalizer,
+                    multiply_scalar: acc.multiply_scalar
+                        + r.encoding_metrics.multiply_scalar as f64 / normalizer,
+                    vector_add: acc.vector_add + r.encoding_metrics.vector_add as f64 / normalizer,
+                    mul_add: acc.mul_add + r.encoding_metrics.mul_add as f64 / normalizer,
+                }
+            });
+
+        let decoding = succ_results
+            .iter()
+            .fold(AverageComputation::default(), |acc, r| AverageComputation {
                 multiply_alpha: acc.multiply_alpha + r.decoding_metrics.multiply_alpha as f64,
                 multiply_scalar: acc.multiply_scalar + r.decoding_metrics.multiply_scalar as f64,
                 vector_add: acc.vector_add + r.decoding_metrics.vector_add as f64,
                 mul_add: acc.mul_add + r.decoding_metrics.mul_add as f64,
-            }
-        });
-        
+            });
+
         (
             AverageComputation {
                 multiply_alpha: precoding.multiply_alpha / count / k as f64,
@@ -193,17 +210,24 @@ impl TestStatistics {
 
     /// Calculate average time costs for precoding, encoding, and decoding
     pub fn avg_time_costs(results: &[TestResult]) -> AverageTime {
-        let succ_results: Vec<&TestResult> = results.iter().filter(|r| r.num_mismatches == 0).collect();
+        let succ_results: Vec<&TestResult> =
+            results.iter().filter(|r| r.num_mismatches == 0).collect();
         if succ_results.is_empty() {
             return AverageTime::default();
         }
-        
+
         let count = succ_results.len() as f64;
-        let (total_precoding, total_encoding, total_decoding) = succ_results.iter()
-            .fold((0.0, 0.0, 0.0), |(prec, enc, dec), r| {
-                (prec + r.precoding_time_ms, enc + r.encoding_time_ms, dec + r.decoding_time_ms)
-            });
-        
+        let (total_precoding, total_encoding, total_decoding) =
+            succ_results
+                .iter()
+                .fold((0.0, 0.0, 0.0), |(prec, enc, dec), r| {
+                    (
+                        prec + r.precoding_time_ms,
+                        enc + r.encoding_time_ms,
+                        dec + r.decoding_time_ms,
+                    )
+                });
+
         AverageTime {
             precoding: total_precoding / count,
             encoding: total_encoding / count,
@@ -211,4 +235,3 @@ impl TestStatistics {
         }
     }
 }
-
