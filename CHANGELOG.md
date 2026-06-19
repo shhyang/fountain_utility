@@ -2,6 +2,14 @@
 
 All notable changes to the published `fountain_utility` crate are documented here.
 
+## [1.3.1] - 2026-06-19
+
+### Changed
+
+- **`fountain_engine` dependency** bumped to **1.3.2** (`Operation::EnsureZeroOne`, `HDPC::lu_idssh`, precoding refactor).
+- **`PerformanceMetrics::from_operations`** counts `EnsureZeroOne` toward `max_storage`.
+- **`VecDataOperater::execute`** replays `EnsureZeroOne` operations.
+
 ## [1.3.0] - 2026-06-08
 
 ### Added

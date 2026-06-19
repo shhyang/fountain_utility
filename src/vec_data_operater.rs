@@ -209,6 +209,9 @@ impl DataOperator for VecDataOperater {
             Operation::EnsureZero { list_id } => {
                 self.ensure_zero(list_id);
             }
+            Operation::EnsureZeroOne { id } => {
+                self.ensure_zero(std::slice::from_ref(id));
+            }
             Operation::MultiplyAlpha { id } => {
                 self.multiply_alpha(*id);
             }

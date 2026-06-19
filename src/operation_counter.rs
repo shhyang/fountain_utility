@@ -36,6 +36,12 @@ impl PerformanceMetrics {
                         metrics.max_storage = current_storage;
                     }
                 }
+                Operation::EnsureZeroOne { .. } => {
+                    current_storage += 1;
+                    if current_storage > metrics.max_storage {
+                        metrics.max_storage = current_storage;
+                    }
+                }
                 Operation::MultiplyAlpha { .. } => metrics.multiply_alpha += 1,
                 Operation::MultiplyScalar { .. } => metrics.multiply_scalar += 1,
                 Operation::AddOneToVector { .. } => metrics.vector_add += 1,
