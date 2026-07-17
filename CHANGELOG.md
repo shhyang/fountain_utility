@@ -2,6 +2,17 @@
 
 All notable changes to the published `fountain_utility` crate are documented here.
 
+## [2.0.0] - 2026-07-17
+
+### Changed
+
+- **`fountain_engine` dependency** bumped to **2.0.0** (SystemSolver-based engine; no published `profiling` / legacy solver features).
+- This major version tracks the engine 2.x cutover. The utility API surface is unchanged for typical `VecDataOperater` / padding / testing use.
+
+### Notes
+
+- Monorepo-only `scheme_profile` / `profiling` helpers are not part of this published crate (they require engine profiling APIs that are not shipped in engine 2.x).
+
 ## [1.3.1] - 2026-06-19
 
 ### Changed

@@ -13,6 +13,16 @@ Data operators and testing utilities for fountain code libraries.
 - **`test_code_scheme_multiple`**: Run multiple trials and collect statistics.
 - **`TestStatistics`**: Compute success rates, overhead statistics, and more.
 
+## Dependency
+
+Requires **`fountain_engine` 2.0**:
+
+```toml
+[dependencies]
+fountain_utility = "2.0.0"
+fountain_engine = "2.0.0"
+```
+
 ## License
 
 MIT License. See [LICENSE-MIT](LICENSE-MIT).
